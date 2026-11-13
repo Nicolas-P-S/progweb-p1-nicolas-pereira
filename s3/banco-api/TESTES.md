@@ -1,4 +1,4 @@
-# Testes da API — Projeto 1 (S3)
+# Testes da API 
 
 **API:** Banco API\
 **Servidor:** `npm run dev` em http://localhost:3000\
