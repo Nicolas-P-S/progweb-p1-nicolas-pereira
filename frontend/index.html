@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trilha de Estudos</title>
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+    crossorigin="anonymous">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-body-tertiary">
+  <header class="bg-primary text-white py-3 mb-4">
+    <div class="container">
+      <h1 class="h3 mb-0">Trilha de Estudos</h1>
+      <p class="mb-0 small">Objetivos de aprendizado e as tarefas para chegar lá</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="aviso" class="alert d-none" role="status" aria-live="polite"></div>
+
+    <!-- ===================== OBJETIVOS ===================== -->
+    <section class="row g-4 mb-5" aria-labelledby="titulo-objetivos">
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h2 id="titulo-objetivos" class="h5 mb-0">Objetivos</h2>
+          </div>
+          <form id="form-objetivo" class="card-body" novalidate>
+            <div class="mb-3">
+              <label for="obj-titulo" class="form-label">Título</label>
+              <input id="obj-titulo" name="titulo" type="text" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="obj-descricao" class="form-label">Descrição (opcional)</label>
+              <textarea id="obj-descricao" name="descricao" rows="2" class="form-control"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="obj-prazo" class="form-label">Prazo (opcional)</label>
+              <input id="obj-prazo" name="prazo" type="date" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label for="obj-status" class="form-label">Status</label>
+              <select id="obj-status" name="status" class="form-select">
+                <option value="EM_ANDAMENTO">Em andamento</option>
+                <option value="CONCLUIDO">Concluído</option>
+              </select>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="obj-salvar" type="submit" class="btn btn-primary">Cadastrar objetivo</button>
+              <button id="obj-cancelar" type="button" class="btn btn-outline-secondary d-none">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div id="objetivos-carregando" class="text-center py-4">
+              <div class="spinner-border text-primary" aria-hidden="true"></div>
+              <p class="text-muted mt-2 mb-0">Carregando objetivos…</p>
+            </div>
+
+            <div id="objetivos-erro" class="alert alert-danger mb-0 d-none" role="alert">
+              <p id="objetivos-erro-msg" class="mb-2"></p>
+              <button id="objetivos-recarregar" type="button" class="btn btn-sm btn-outline-danger">Tentar de novo</button>
+            </div>
+
+            <p id="objetivos-vazio" class="text-muted text-center py-4 mb-0 d-none">
+              Nenhum objetivo ainda. Cadastre o primeiro no formulário.
+            </p>
+
+            <div id="objetivos-sucesso" class="table-responsive d-none">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Título</th>
+                    <th scope="col">Prazo</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-end">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="objetivos-linhas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== TAREFAS ===================== -->
+    <section class="row g-4 mb-5" aria-labelledby="titulo-tarefas">
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h2 id="titulo-tarefas" class="h5 mb-0">Tarefas</h2>
+          </div>
+          <form id="form-tarefa" class="card-body" novalidate>
+            <div class="mb-3">
+              <label for="tarefa-objetivo" class="form-label">Objetivo</label>
+              <select id="tarefa-objetivo" name="objetivoId" class="form-select" required>
+                <option value="">Selecione…</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="tarefa-titulo" class="form-label">Título</label>
+              <input id="tarefa-titulo" name="titulo" type="text" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="tarefa-prazo" class="form-label">Prazo</label>
+              <input id="tarefa-prazo" name="prazo" type="date" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="tarefa-status" class="form-label">Status</label>
+              <select id="tarefa-status" name="status" class="form-select">
+                <option value="PENDENTE">Pendente</option>
+                <option value="CONCLUIDA">Concluída</option>
+              </select>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="tarefa-salvar" type="submit" class="btn btn-primary">Criar tarefa</button>
+              <button id="tarefa-cancelar" type="button" class="btn btn-outline-secondary d-none">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div id="tarefas-carregando" class="text-center py-4">
+              <div class="spinner-border text-primary" aria-hidden="true"></div>
+              <p class="text-muted mt-2 mb-0">Carregando tarefas…</p>
+            </div>
+
+            <div id="tarefas-erro" class="alert alert-danger mb-0 d-none" role="alert">
+              <p id="tarefas-erro-msg" class="mb-2"></p>
+              <button id="tarefas-recarregar" type="button" class="btn btn-sm btn-outline-danger">Tentar de novo</button>
+            </div>
+
+            <p id="tarefas-vazio" class="text-muted text-center py-4 mb-0 d-none">
+              Nenhuma tarefa ainda. Cadastre um objetivo e crie a primeira.
+            </p>
+
+            <div id="tarefas-sucesso" class="table-responsive d-none">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Objetivo</th>
+                    <th scope="col">Tarefa</th>
+                    <th scope="col">Prazo</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-end">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tarefas-linhas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container text-muted small pb-4">
+    Programação Web · UEPB · 2026.2 · Semana 4
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
