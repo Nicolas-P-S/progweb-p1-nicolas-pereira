@@ -1,41 +1,41 @@
-let tarefas = [];
-let proximoId = 1;
+import { db } from '../db.js';
+
+// Banco: snake_case (objetivo_id). API/front: camelCase (objetivoId).
+const COLUNAS = 'id, titulo, prazo, status, objetivo_id AS objetivoId';
 
 export const tarefaModel = {
   listar() {
-    return tarefas;
+    return db.prepare(`SELECT ${COLUNAS} FROM tarefas ORDER BY id`).all();
   },
 
   listarPorObjetivo(objetivoId) {
-    return tarefas.filter((t) => t.objetivoId === objetivoId);
+    return db
+      .prepare(`SELECT ${COLUNAS} FROM tarefas WHERE objetivo_id = ? ORDER BY id`)
+      .all(objetivoId);
   },
 
   buscarPorId(id) {
-    return tarefas.find((t) => t.id === id) ?? null;
+    return db.prepare(`SELECT ${COLUNAS} FROM tarefas WHERE id = ?`).get(id) ?? null;
   },
 
   inserir({ titulo, prazo, status, objetivoId }) {
-    const nova = {
-      id: proximoId++,
-      titulo: titulo.trim(),
-      prazo,
-      status,
-      objetivoId: Number(objetivoId),
-    };
-    tarefas.push(nova);
-    return nova;
+    const r = db
+      .prepare('INSERT INTO tarefas (titulo, prazo, status, objetivo_id) VALUES (?, ?, ?, ?)')
+      .run(titulo.trim(), prazo, status, Number(objetivoId));
+    return this.buscarPorId(r.lastInsertRowid);
   },
 
   atualizar(id, dados) {
-    const i = tarefas.findIndex((t) => t.id === id);
-    if (i === -1) return null;
-    tarefas[i] = { ...tarefas[i], ...dados, id };
-    return tarefas[i];
+    const atual = this.buscarPorId(id);
+    if (!atual) return null;
+    const novo = { ...atual, ...dados };
+    db.prepare('UPDATE tarefas SET titulo = ?, prazo = ?, status = ?, objetivo_id = ? WHERE id = ?')
+      .run(novo.titulo, novo.prazo, novo.status, Number(novo.objetivoId), id);
+    return this.buscarPorId(id);
   },
 
   remover(id) {
-    const antes = tarefas.length;
-    tarefas = tarefas.filter((t) => t.id !== id);
-    return tarefas.length < antes;
+    const r = db.prepare('DELETE FROM tarefas WHERE id = ?').run(id);
+    return r.changes > 0;
   },
 };
