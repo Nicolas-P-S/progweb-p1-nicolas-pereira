@@ -1,8 +1,12 @@
 import { API_URL } from './config.js';
+import { sessao } from './sessao.js';
 
-// Camada HTTP: a única que conhece fetch, URL, headers e status.
+let aoNaoAutorizado = () => {};
+
 async function request(metodo, caminho, dados) {
   const opcoes = { method: metodo, headers: {} };
+  const token = sessao.token();
+  if (token) opcoes.headers.Authorization = `Bearer ${token}`;
   if (dados !== undefined) {
     opcoes.headers['Content-Type'] = 'application/json';
     opcoes.body = JSON.stringify(dados);
@@ -19,7 +23,14 @@ async function request(metodo, caminho, dados) {
 
   const corpo = await resp.json().catch(() => null);
 
-  if (!resp.ok) throw new Error(corpo?.erro ?? `Erro ${resp.status}`);
+  if (!resp.ok) {
+    // 401 com token enviado = sessão expirada ou inválida: volta para o login
+    if (resp.status === 401 && token) {
+      sessao.limpar();
+      aoNaoAutorizado();
+    }
+    throw new Error(corpo?.erro ?? `Erro ${resp.status}`);
+  }
 
   return corpo;
 }
@@ -29,4 +40,5 @@ export const api = {
   post: (caminho, dados) => request('POST', caminho, dados),
   put: (caminho, dados) => request('PUT', caminho, dados),
   delete: (caminho) => request('DELETE', caminho),
+  aoNaoAutorizado: (fn) => { aoNaoAutorizado = fn; },
 };

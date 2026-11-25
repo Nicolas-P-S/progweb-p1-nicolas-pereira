@@ -1,41 +1,48 @@
-let tarefas = [];
-let proximoId = 1;
+import { db } from '../db.js';
+
+// A tarefa é do usuário por meio do objetivo: todo SELECT faz JOIN para conferir o dono.
+const COLUNAS = 't.id, t.titulo, t.prazo, t.status, t.objetivo_id AS objetivoId';
+const DO_USUARIO = 'FROM tarefas t JOIN objetivos o ON o.id = t.objetivo_id WHERE o.usuario_id = ?';
 
 export const tarefaModel = {
-  listar() {
-    return tarefas;
+  listar(usuarioId) {
+    return db.prepare(`SELECT ${COLUNAS} ${DO_USUARIO} ORDER BY t.id`).all(usuarioId);
   },
 
-  listarPorObjetivo(objetivoId) {
-    return tarefas.filter((t) => t.objetivoId === objetivoId);
+  listarPorObjetivo(objetivoId, usuarioId) {
+    return db
+      .prepare(`SELECT ${COLUNAS} ${DO_USUARIO} AND t.objetivo_id = ? ORDER BY t.id`)
+      .all(usuarioId, objetivoId);
   },
 
-  buscarPorId(id) {
-    return tarefas.find((t) => t.id === id) ?? null;
+  buscarPorId(id, usuarioId) {
+    return db
+      .prepare(`SELECT ${COLUNAS} ${DO_USUARIO} AND t.id = ?`)
+      .get(usuarioId, id) ?? null;
   },
 
+  // O service já conferiu que o objetivo é do usuário
   inserir({ titulo, prazo, status, objetivoId }) {
-    const nova = {
-      id: proximoId++,
-      titulo: titulo.trim(),
-      prazo,
-      status,
-      objetivoId: Number(objetivoId),
-    };
-    tarefas.push(nova);
-    return nova;
+    const r = db
+      .prepare('INSERT INTO tarefas (titulo, prazo, status, objetivo_id) VALUES (?, ?, ?, ?)')
+      .run(titulo.trim(), prazo, status, Number(objetivoId));
+    return db.prepare(`SELECT ${COLUNAS} FROM tarefas t WHERE t.id = ?`).get(r.lastInsertRowid);
   },
 
-  atualizar(id, dados) {
-    const i = tarefas.findIndex((t) => t.id === id);
-    if (i === -1) return null;
-    tarefas[i] = { ...tarefas[i], ...dados, id };
-    return tarefas[i];
+  // O service já conferiu o dono (via buscarPorId) antes de chamar
+  atualizar(id, usuarioId, dados) {
+    const atual = this.buscarPorId(id, usuarioId);
+    if (!atual) return null;
+    const novo = { ...atual, ...dados };
+    db.prepare('UPDATE tarefas SET titulo = ?, prazo = ?, status = ?, objetivo_id = ? WHERE id = ?')
+      .run(novo.titulo, novo.prazo, novo.status, Number(novo.objetivoId), id);
+    return this.buscarPorId(id, usuarioId);
   },
 
-  remover(id) {
-    const antes = tarefas.length;
-    tarefas = tarefas.filter((t) => t.id !== id);
-    return tarefas.length < antes;
+  remover(id, usuarioId) {
+    const r = db
+      .prepare('DELETE FROM tarefas WHERE id = ? AND objetivo_id IN (SELECT id FROM objetivos WHERE usuario_id = ?)')
+      .run(id, usuarioId);
+    return r.changes > 0;
   },
 };

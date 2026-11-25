@@ -6,30 +6,30 @@ const STATUS = ['PENDENTE', 'CONCLUIDA'];
 const dataValida = (v) => typeof v === 'string' && !Number.isNaN(Date.parse(v));
 
 export const tarefaService = {
-  listar(objetivoId) {
-    if (objetivoId) return tarefaModel.listarPorObjetivo(Number(objetivoId));
-    return tarefaModel.listar();
+  listar(usuarioId, objetivoId) {
+    if (objetivoId) return tarefaModel.listarPorObjetivo(Number(objetivoId), usuarioId);
+    return tarefaModel.listar(usuarioId);
   },
 
-  buscarPorId(id) {
-    const tarefa = tarefaModel.buscarPorId(id);
+  buscarPorId(id, usuarioId) {
+    const tarefa = tarefaModel.buscarPorId(id, usuarioId);
     if (!tarefa) throw erro(404, 'Tarefa não encontrada');
     return tarefa;
   },
 
-  criar({ titulo, prazo, status = 'PENDENTE', objetivoId } = {}) {
+  criar(usuarioId, { titulo, prazo, status = 'PENDENTE', objetivoId } = {}) {
     if (!titulo || !String(titulo).trim() || !prazo || !objetivoId) {
       throw erro(400, 'Campos "titulo", "prazo" e "objetivoId" são obrigatórios');
     }
     if (!dataValida(prazo)) throw erro(400, 'Prazo inválido (use AAAA-MM-DD)');
     if (!STATUS.includes(status)) throw erro(400, `Status deve ser um de: ${STATUS.join(', ')}`);
-    // Regra: o objetivo precisa existir
-    if (!objetivoModel.buscarPorId(Number(objetivoId))) throw erro(422, 'Objetivo informado não existe');
+    // O objetivo precisa existir E ser do usuário
+    if (!objetivoModel.buscarPorId(Number(objetivoId), usuarioId)) throw erro(422, 'Objetivo informado não existe');
     return tarefaModel.inserir({ titulo, prazo, status, objetivoId });
   },
 
-  atualizar(id, dados = {}) {
-    this.buscarPorId(id); // 404 se não existir
+  atualizar(id, usuarioId, dados = {}) {
+    this.buscarPorId(id, usuarioId); // 404 se não existir ou for de outro usuário
     const { titulo, prazo, status, objetivoId } = dados;
 
     if (titulo !== undefined && !String(titulo).trim()) throw erro(400, 'Campo "titulo" não pode ser vazio');
@@ -37,7 +37,7 @@ export const tarefaService = {
     if (status !== undefined && !STATUS.includes(status)) {
       throw erro(400, `Status deve ser um de: ${STATUS.join(', ')}`);
     }
-    if (objetivoId !== undefined && !objetivoModel.buscarPorId(Number(objetivoId))) {
+    if (objetivoId !== undefined && !objetivoModel.buscarPorId(Number(objetivoId), usuarioId)) {
       throw erro(422, 'Objetivo informado não existe');
     }
 
@@ -49,11 +49,10 @@ export const tarefaService = {
         objetivoId: objetivoId !== undefined ? Number(objetivoId) : undefined,
       }).filter(([, v]) => v !== undefined)
     );
-    return tarefaModel.atualizar(id, campos);
+    return tarefaModel.atualizar(id, usuarioId, campos);
   },
 
-  remover(id) {
-    const removida = tarefaModel.remover(id);
-    if (!removida) throw erro(404, 'Tarefa não encontrada');
+  remover(id, usuarioId) {
+    if (!tarefaModel.remover(id, usuarioId)) throw erro(404, 'Tarefa não encontrada');
   },
 };

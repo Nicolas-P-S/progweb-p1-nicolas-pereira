@@ -1,42 +1,44 @@
-let objetivos = [];
-let proximoId = 1;
+import { db } from '../db.js';
+
+const COLUNAS = 'id, titulo, descricao, prazo, status';
 
 export const objetivoModel = {
-  listar() {
-    return objetivos;
+  listar(usuarioId) {
+    return db.prepare(`SELECT ${COLUNAS} FROM objetivos WHERE usuario_id = ? ORDER BY id`).all(usuarioId);
   },
 
-  buscarPorId(id) {
-    return objetivos.find((o) => o.id === id) ?? null;
+  buscarPorId(id, usuarioId) {
+    return db
+      .prepare(`SELECT ${COLUNAS} FROM objetivos WHERE id = ? AND usuario_id = ?`)
+      .get(id, usuarioId) ?? null;
   },
 
-  existeTitulo(titulo, ignorarId = null) {
-    const t = titulo.trim().toLowerCase();
-    return objetivos.some((o) => o.id !== ignorarId && o.titulo.toLowerCase() === t);
+  // A coluna é NOCASE: a comparação ignora maiúsculas. Vale só dentro do mesmo usuário.
+  existeTitulo(usuarioId, titulo, ignorarId = null) {
+    const linha = db
+      .prepare('SELECT 1 FROM objetivos WHERE usuario_id = ? AND titulo = ? AND id IS NOT ?')
+      .get(usuarioId, titulo.trim(), ignorarId);
+    return linha !== undefined;
   },
 
-  inserir({ titulo, descricao, prazo, status }) {
-    const novo = {
-      id: proximoId++,
-      titulo: titulo.trim(),
-      descricao: descricao ?? null,
-      prazo: prazo ?? null,
-      status,
-    };
-    objetivos.push(novo);
-    return novo;
+  inserir(usuarioId, { titulo, descricao, prazo, status }) {
+    const r = db
+      .prepare('INSERT INTO objetivos (titulo, descricao, prazo, status, usuario_id) VALUES (?, ?, ?, ?, ?)')
+      .run(titulo.trim(), descricao ?? null, prazo ?? null, status, usuarioId);
+    return this.buscarPorId(r.lastInsertRowid, usuarioId);
   },
 
-  atualizar(id, dados) {
-    const i = objetivos.findIndex((o) => o.id === id);
-    if (i === -1) return null;
-    objetivos[i] = { ...objetivos[i], ...dados, id };
-    return objetivos[i];
+  atualizar(id, usuarioId, dados) {
+    const atual = this.buscarPorId(id, usuarioId);
+    if (!atual) return null;
+    const novo = { ...atual, ...dados };
+    db.prepare('UPDATE objetivos SET titulo = ?, descricao = ?, prazo = ?, status = ? WHERE id = ? AND usuario_id = ?')
+      .run(novo.titulo, novo.descricao ?? null, novo.prazo ?? null, novo.status, id, usuarioId);
+    return this.buscarPorId(id, usuarioId);
   },
 
-  remover(id) {
-    const antes = objetivos.length;
-    objetivos = objetivos.filter((o) => o.id !== id);
-    return objetivos.length < antes;
+  remover(id, usuarioId) {
+    const r = db.prepare('DELETE FROM objetivos WHERE id = ? AND usuario_id = ?').run(id, usuarioId);
+    return r.changes > 0;
   },
 };

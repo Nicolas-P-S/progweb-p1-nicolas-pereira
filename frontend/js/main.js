@@ -5,6 +5,10 @@ import { tarefaService } from './services/tarefaService.js';
 import { objetivoView } from './ui/objetivoView.js';
 import { tarefaView } from './ui/tarefaView.js';
 import { aviso } from './ui/aviso.js';
+import { api } from './api.js';
+import { sessao } from './sessao.js';
+import { authService } from './services/authService.js';
+import { authView } from './ui/authView.js';
 
 // ===================== ESTADOS =====================
 const objetivos = criarStore({
@@ -151,6 +155,50 @@ tarefaView.aoCancelar(cancelarEdicaoTarefa);
 tarefaView.aoRecarregar(carregarTarefas);
 tarefaView.aoClicarNaLista({ editar: editarTarefa, remover: removerTarefa });
 
+// ===================== ACESSO =====================
+function iniciarApp(usuario) {
+  authView.mostrarApp(usuario);
+  carregarObjetivos();
+  carregarTarefas();
+}
+
+function encerrarApp() {
+  // Zera tudo, para os dados de um usuário não aparecerem para o próximo
+  const base = { status: 'carregando', erro: null, editandoId: null, salvando: false };
+  objetivos.set({ ...base, objetivos: [] });
+  tarefas.set({ ...base, tarefas: [] });
+  objetivoView.limparForm();
+  tarefaView.limparForm();
+  authView.mostrarAuth();
+}
+
+async function acessar(acao, dados) {
+  aviso.limpar();
+  try {
+    const { usuario } = await acao(dados);
+    authView.limparForms();
+    iniciarApp(usuario);
+  } catch (e) {
+    aviso.erro(e.message);
+  }
+}
+
+authView.aoEntrar((dados) => acessar(authService.entrar, dados));
+authView.aoCadastrar((dados) => acessar(authService.cadastrar, dados));
+
+authView.aoSair(() => {
+  authService.sair();
+  aviso.limpar();
+  encerrarApp();
+});
+
+// Token expirado ou inválido: volta para o login
+api.aoNaoAutorizado(() => {
+  encerrarApp();
+  aviso.erro('Sua sessão expirou. Entre de novo.');
+});
+
 // ===================== INÍCIO =====================
-carregarObjetivos();
-carregarTarefas();
+const atual = sessao.obter();
+if (atual) iniciarApp(atual.usuario);
+else authView.mostrarAuth();
