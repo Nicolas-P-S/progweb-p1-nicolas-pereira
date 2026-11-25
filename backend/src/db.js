@@ -7,12 +7,21 @@ export const db = new DatabaseSync(arquivo);
 db.exec('PRAGMA foreign_keys = ON;');
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS usuarios (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome       TEXT NOT NULL,
+    email      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    senha_hash TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS objetivos (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    titulo    TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    descricao TEXT,
-    prazo     TEXT,
-    status    TEXT NOT NULL CHECK (status IN ('EM_ANDAMENTO', 'CONCLUIDO'))
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo     TEXT NOT NULL COLLATE NOCASE,
+    descricao  TEXT,
+    prazo      TEXT,
+    status     TEXT NOT NULL CHECK (status IN ('EM_ANDAMENTO', 'CONCLUIDO')),
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    UNIQUE (usuario_id, titulo)
   );
 
   CREATE TABLE IF NOT EXISTS tarefas (
